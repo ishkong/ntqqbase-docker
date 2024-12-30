@@ -11,15 +11,24 @@ ENV QQ_ARCH=${ARCH}
 
 RUN apt-get update && apt-get install -y \
     wget \
-    gdebi-core \
     ca-certificates \
     xvfb \
+    libgtk-3-dev \
+    libasound2-dev \
+    libgbm-dev \
+    libnss3-dev \
+    libdbus-1-3 \
+    libatk1.0-0 \
+    dbus \
+    dbus-x11 \
+    libcups2-dev \
+    libatk-bridge2.0-dev \
  && rm -rf /var/lib/apt/lists/*
 
 RUN update-ca-certificates
 
 RUN wget -O /tmp/linuxqq.deb https://dldir1.qq.com/qqfile/qq/QQNT/${QQ_HASH}/linuxqq_${QQ_VERSION}_${QQ_ARCH}.deb \
- && gdebi -n /tmp/linuxqq.deb \
+ && dpkg -i --force-depends /tmp/linuxqq.deb \
  && rm /tmp/linuxqq.deb
 
 WORKDIR /app
