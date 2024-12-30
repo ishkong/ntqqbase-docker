@@ -60,8 +60,10 @@ jobs:
             done
           fi
           echo "entries_json is: $entries_json"
-
-          echo "entries=$entries_json" >> $GITHUB_OUTPUT
+      
+          entries_json=$(echo "$entries_json" | jq -c '.')
+      
+          echo "entries=$entries_json" >> $GITHUB_OUTPUT 
 
   build:
     needs: parse
