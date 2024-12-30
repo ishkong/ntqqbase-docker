@@ -23,6 +23,10 @@ RUN apt-get update && apt-get install -y \
     dbus-x11 \
     libcups2-dev \
     libatk-bridge2.0-dev \
+    libsecret-1-0 \
+    libxss1 \
+    libnotify4 \
+    xdg-utils \
  && rm -rf /var/lib/apt/lists/*
 
 RUN update-ca-certificates
