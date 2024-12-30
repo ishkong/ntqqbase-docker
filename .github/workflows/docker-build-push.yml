@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'qq_version.json'
+  workflow_dispatch:
 
 jobs:
   parse:
