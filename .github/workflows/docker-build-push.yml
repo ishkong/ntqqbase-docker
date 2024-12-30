@@ -19,8 +19,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up JQ
-        run: sudo apt-get install -y jq
+      - name: Ensure jq is installed
+        run: |
+          if ! command -v jq &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
 
       - name: Determine Changed Files or All Files
         id: parse
@@ -30,7 +34,7 @@ jobs:
           entries_json="[]"
           if [ "${{ github.event_name }}" == "push" ]; then
             echo "Triggered by push event. Processing changed files."
-            git fetch --depth=2 origin ${{ github.event.before }}
+            git fetch --depth=2 origin ${{ github.ref }}
             changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- qq_version/*.txt)
             if [ -z "$changed_files" ]; then
               echo "No changed files in qq_version directory."
@@ -55,7 +59,11 @@ jobs:
               fi
             done
           fi
-          echo "entries=$entries_json" >> $GITHUB_OUTPUT
+          echo "entries_json is: $entries_json"
+
+          echo "entries<<EOF" >> $GITHUB_OUTPUT
+          echo "$entries_json" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
   build:
     needs: parse
