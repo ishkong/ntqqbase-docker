@@ -6,6 +6,10 @@ on:
       - 'qq_version.json'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   parse:
     runs-on: ubuntu-latest
