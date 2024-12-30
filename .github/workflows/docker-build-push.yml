@@ -3,7 +3,7 @@ name: Build and Push Docker Base Images
 on:
   push:
     paths:
-      - 'qq_version.json'
+      - 'qq_version/**'
   workflow_dispatch:
 
 permissions:
@@ -19,18 +19,52 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse qq_version.json
+      - name: Set up JQ
+        run: sudo apt-get install -y jq
+
+      - name: Determine Changed Files or All Files
         id: parse
+        shell: bash
         run: |
-          entries=$(jq -c '.' qq_version.json)
-          echo "entries=$entries" >> $GITHUB_OUTPUT
+          set -e
+          entries_json="[]"
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "Triggered by push event. Processing changed files."
+            git fetch --depth=2 origin ${{ github.event.before }}
+            changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- qq_version/*.txt)
+            if [ -z "$changed_files" ]; then
+              echo "No changed files in qq_version directory."
+            else
+              for file in $changed_files; do
+                if [[ -f "$file" ]]; then
+                  version=$(basename "$file" .txt)
+                  hash=$(cat "$file")
+                  entry="{\"version\": \"$version\", \"hash\": \"$hash\"}"
+                  entries_json=$(echo "$entries_json" | jq ". + [ $entry ]")
+                fi
+              done
+            fi
+          else
+            echo "Triggered by manual event. Processing all files."
+            for file in qq_version/*.txt; do
+              if [[ -f "$file" ]]; then
+                version=$(basename "$file" .txt)
+                hash=$(cat "$file")
+                entry="{\"version\": \"$version\", \"hash\": \"$hash\"}"
+                entries_json=$(echo "$entries_json" | jq ". + [ $entry ]")
+              fi
+            done
+          fi
+          echo "entries=$entries_json" >> $GITHUB_OUTPUT
 
   build:
     needs: parse
+    if: ${{ fromJson(needs.parse.outputs.entries) && fromJson(needs.parse.outputs.entries).length > 0 }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         entry: ${{ fromJson(needs.parse.outputs.entries) }}
+        platform: [amd64, arm64]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -50,30 +84,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push Docker Image (amd64)
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/amd64
+          platforms: linux/${{ matrix.platform }}
           build-args: |
             VERSION=${{ matrix.entry.version }}
             HASH=${{ matrix.entry.hash }}
-            ARCH=amd64
+            ARCH=${{ matrix.platform }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ntqqbase:${{ matrix.entry.version }}
-
-      - name: Build and Push Docker Image (arm64)
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          platforms: linux/arm64
-          build-args: |
-            VERSION=${{ matrix.entry.version }}
-            HASH=${{ matrix.entry.hash }}
-            ARCH=arm64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/ntqqbase:${{ matrix.entry.version }}-arm64
+            ghcr.io/${{ github.repository_owner }}/ntqqbase:${{ matrix.entry.version }}${{ matrix.platform == 'arm64' && '-arm64' || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
