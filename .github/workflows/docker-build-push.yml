@@ -61,9 +61,7 @@ jobs:
           fi
           echo "entries_json is: $entries_json"
 
-          echo "entries<<EOF" >> $GITHUB_OUTPUT
-          echo "$entries_json" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "entries=$entries_json" >> $GITHUB_OUTPUT
 
   build:
     needs: parse
