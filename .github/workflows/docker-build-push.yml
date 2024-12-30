@@ -17,7 +17,7 @@ jobs:
       - name: Parse qq_version.json
         id: parse
         run: |
-          entries=$(jq -c '.[]' qq_version.json)
+          entries=$(jq -c '.' qq_version.json)
           echo "entries=$entries" >> $GITHUB_OUTPUT
 
   build:
