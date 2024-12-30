@@ -67,11 +67,11 @@ jobs:
 
   build:
     needs: parse
-    if: ${{ fromJson(needs.parse.outputs.entries || '[]').length > 0 }}
+    if: ${{ toJson(needs.parse.outputs.entries || '[]').length > 0 }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        entry: ${{ fromJson(needs.parse.outputs.entries || '[]') }}
+        entry: ${{ toJson(needs.parse.outputs.entries || '[]') }}
         platform: [amd64, arm64]
     steps:
       - name: Checkout Repository
